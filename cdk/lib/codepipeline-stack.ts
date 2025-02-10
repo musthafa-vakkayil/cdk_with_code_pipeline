@@ -106,7 +106,7 @@ export class CodePipelineStack extends cdk.Stack {
             adminPermissions: true,
             replaceOnFailure: true,
             stackName: props.codebuild.targetStack,
-            templatePath: templateOutput.atPath(`${props.codebuild.targetStack}.template.json`),
+            templatePath: templateOutput.atPath(`cdk/dist/HBTechnicalSupportServcieStack.template.json`),
             extraInputs: [lambdaOutput],
             cfnCapabilities: [
                 cdk.CfnCapabilities.NAMED_IAM,
