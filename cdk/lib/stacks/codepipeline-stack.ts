@@ -75,6 +75,10 @@ export class CodePipelineStack extends cdk.Stack {
             encryptionKey: key,
             environment: { buildImage: codebuild.LinuxBuildImage.STANDARD_6_0 },
             buildSpec: codebuild.BuildSpec.fromSourceFilename('buildspec/buildspec-template.yml'),
+            environmentVariables: {
+                ENV: { value: props.environment, type: codebuild.BuildEnvironmentVariableType.PLAINTEXT },
+                STACK_CONFIG: { value: props.lambdaSecretName, type: codebuild.BuildEnvironmentVariableType.PLAINTEXT }
+            }
         });
 
         const lambdaBuildProject = new codebuild.PipelineProject(this, 'LambdaCodeBuild', {
@@ -104,10 +108,6 @@ export class CodePipelineStack extends cdk.Stack {
             project: templateBuildProject,
             outputs: [templateOutput],
             runOrder: 2,
-            environmentVariables: {
-                ENV: { value: props.environment, type: codebuild.BuildEnvironmentVariableType.PLAINTEXT },
-                STACK_CONFIG: { value: props.lambdaSecretName, type: codebuild.BuildEnvironmentVariableType.PLAINTEXT }
-            }
         });
 
         const lambdaBuildAction = new codepipeline_actions.CodeBuildAction({

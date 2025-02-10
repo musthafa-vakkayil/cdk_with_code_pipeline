@@ -93,6 +93,13 @@
                 "apigateway:*"
             ],
             "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ssm:GetParameters"
+            ],
+            "Resource": "*"
         }
     ]
 }
