@@ -1,0 +1,14 @@
+{
+    "lambda": {
+        "FUNCTION_NAME": "hb-technical-lambda-service",
+        "ENVIRONMENT_VARIABLES": {
+            "ARTIFACT_BUCKET_NAME": "test"
+        }
+    },
+    "api": {
+        "API_NAME": "hb-technial-api"
+    },
+    "artifact": {
+        "BUCKET_NAME": "hb-technial-bucket"
+    }
+}

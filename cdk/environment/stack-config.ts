@@ -1,6 +1,8 @@
-import { IAwsCdkCodepipelineStackProps } from "./stack-config-types";
+import { IAwsCdkCodepipelineStackProps } from "../config/codepipeline-config-types";
 
 const environmentConfig: IAwsCdkCodepipelineStackProps = {
+    environment: "dev",
+    lambdaSecretName: "hb-technical-secret",
     role: {
         name: 'codepipeline-role',
         description: 'Iam role for Codepipeline',

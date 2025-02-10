@@ -1,6 +1,8 @@
 import { StackProps } from "aws-cdk-lib";
 
 export interface IAwsCdkCodepipelineStackProps extends StackProps {
+    environment: string,
+    lambdaSecretName: string,
     role: {
         name: string,
         description: string,

@@ -10,14 +10,15 @@ import * as codepipeline_actions from 'aws-cdk-lib/aws-codepipeline-actions';
 import * as notifications from 'aws-cdk-lib/aws-codestarnotifications';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as sns_sub from 'aws-cdk-lib/aws-sns-subscriptions';
-import { IAwsCdkCodepipelineStackProps } from '../config/stack-config-types';
+import { IAwsCdkCodepipelineStackProps } from '../../config/codepipeline-config-types';
+import codepipelinePolicyJson from "../policies/codepipelinePolicy.json"
 
 export class CodePipelineStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props: IAwsCdkCodepipelineStackProps) {
         super(scope, id, props);
 
         // create iam user
-        const role = new iam.Role(this, 'role', {
+        const role = new iam.Role(this, 'codePipelineRole', {
             roleName: props.role.name,
             description: props.role.description,
             assumedBy: new iam.CompositePrincipal(
@@ -27,10 +28,25 @@ export class CodePipelineStack extends cdk.Stack {
             ),
         });
 
-        role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName(props.role.managedPolicy))
+        // Policy for codepipeline
+        const codepipelinePolicyJsonFinal = JSON.parse(
+            JSON.stringify(codepipelinePolicyJson)
+                .replaceAll("${AWS_ACCOUNT_ID}", this.account)
+                .replaceAll("${AWS_REGION}", this.region)
+        );
+
+        const executionPolicy = new iam.ManagedPolicy(this, "CodePipelinePolicy", {
+            managedPolicyName: `code-pipeline-execution-policy`,
+            description: "Policy used for codepipeline",
+            document: iam.PolicyDocument.fromJson(codepipelinePolicyJsonFinal),
+        });
+
+        role.addManagedPolicy(executionPolicy)
+
+        // role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName(props.role.managedPolicy))
 
         /** KMS key used for s3 bucket in codepipeline */
-        const key = new kms.Key(this, 'key', { description: props.keyDescription, removalPolicy: cdk.RemovalPolicy.DESTROY })
+        const key = new kms.Key(this, 'codepipelineKmsKey', { description: props.keyDescription, removalPolicy: cdk.RemovalPolicy.DESTROY })
         key.grantEncryptDecrypt(role)
 
         /* github token */
@@ -38,7 +54,7 @@ export class CodePipelineStack extends cdk.Stack {
         githubToken.grantRead(role);
 
         /* Codepipeline Artifacts and S3 bucket used in Codepipeline */
-        const artifactBucket = new s3.Bucket(this, 'bucket', {
+        const artifactBucket = new s3.Bucket(this, 'codepipelineBucket', {
             bucketName: props.bucketname,
             encryptionKey: key,
             encryption: cdk.aws_s3.BucketEncryption.KMS,
@@ -48,12 +64,12 @@ export class CodePipelineStack extends cdk.Stack {
         artifactBucket.grantReadWrite(role)
 
         const source = new codepipeline.Artifact();
-        const templateOutput = new codepipeline.Artifact('templateOutput');
-        const lambdaOutput = new codepipeline.Artifact('lambdaOutput');
+        const templateOutput = new codepipeline.Artifact('template');
+        const lambdaOutput = new codepipeline.Artifact('lambda');
 
 
         // CodeBuild Projects
-        const templateBuildProject = new codebuild.PipelineProject(this, 'TemplateBuild', {
+        const templateBuildProject = new codebuild.PipelineProject(this, 'TemplateCodeBuild', {
             projectName: props.codebuild.templateProject,
             role,
             encryptionKey: key,
@@ -61,7 +77,7 @@ export class CodePipelineStack extends cdk.Stack {
             buildSpec: codebuild.BuildSpec.fromSourceFilename('buildspec/buildspec-template.yml'),
         });
 
-        const lambdaBuildProject = new codebuild.PipelineProject(this, 'LambdaBuild', {
+        const lambdaBuildProject = new codebuild.PipelineProject(this, 'LambdaCodeBuild', {
             projectName: props.codebuild.lambdaProject,
             role,
             encryptionKey: key,
@@ -88,6 +104,10 @@ export class CodePipelineStack extends cdk.Stack {
             project: templateBuildProject,
             outputs: [templateOutput],
             runOrder: 2,
+            environmentVariables: {
+                ENV: { value: props.environment, type: codebuild.BuildEnvironmentVariableType.PLAINTEXT },
+                STACK_CONFIG: { value: props.lambdaSecretName, type: codebuild.BuildEnvironmentVariableType.PLAINTEXT }
+            }
         });
 
         const lambdaBuildAction = new codepipeline_actions.CodeBuildAction({
@@ -154,23 +174,23 @@ export class CodePipelineStack extends cdk.Stack {
             topic.addSubscription(subscription)
         });
 
-        // [
-        //     { source: templateBuildAction, name: 'template' },
-        //     { source: lambdaBuildAction, name: 'lambda' },
-        // ].forEach(build => {
-        //     return new notifications.NotificationRule(
-        //         this,
-        //         `${build.name}-notifications`,
-        //         {
-        //             notificationRuleName: `${build.name}-notifications`,
-        //             source: build.source,
-        //             events: [
-        //                 'codebuild-project-build-state-succeeded',
-        //                 'codebuild-project-build-state-failed'
-        //             ],
-        //             targets: [topic],
-        //         },
-        //     );
-        // });
+        [
+            { source: templateBuildProject, name: 'template' },
+            { source: lambdaBuildProject, name: 'lambda' },
+        ].forEach(build => {
+            return new notifications.NotificationRule(
+                this,
+                `${build.name}-notifications`,
+                {
+                    notificationRuleName: `${build.name}-notifications`,
+                    source: build.source,
+                    events: [
+                        'codebuild-project-build-state-succeeded',
+                        'codebuild-project-build-state-failed'
+                    ],
+                    targets: [topic],
+                },
+            );
+        });
     }
 }

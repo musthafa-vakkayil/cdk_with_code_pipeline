@@ -7,6 +7,7 @@ phases:
     commands:
       - cd cdk
       - npm ci
+      - aws secretsmanager get-secret-value --secret-id ${STACK_CONFIG}/${ENV} | jq -r '.SecretString' > environments/${ENV}.config.json
   build:
     commands:
       - npm run build

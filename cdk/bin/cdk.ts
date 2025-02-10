@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib';
-import { HBTechnicalSupportServcieStack } from '../lib/hb-technical-stack';
-import environmentConfig from '../config/stack-config';
-import { CodePipelineStack } from '../lib/codepipeline-stack';
+import { HBTechnicalSupportServcieStack } from '../lib/stacks/hb-technical-stack';
+import environmentConfig from '../environment/stack-config';
+import { CodePipelineStack } from '../lib/stacks/codepipeline-stack';
 
 
 const app = new cdk.App();
