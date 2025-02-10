@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib';
 import { HBTechnicalSupportServcieStack } from '../lib/stacks/hb-technical-stack';
-import environmentConfig from '../environment/stack-config';
+import environmentConfig from '../environments/stack-config';
 import { CodePipelineStack } from '../lib/stacks/codepipeline-stack';
 
 

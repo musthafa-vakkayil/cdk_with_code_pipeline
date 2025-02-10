@@ -24,7 +24,7 @@ export interface IConfig {
 // dynamically import correct config file
 const CONFIG: IConfig = JSON.parse(
     readFileSync(
-        `environments/${process.env.LOCAL_DEPLOY !== "true" ? "" : "local."}${process.env.ENVIRONMENT
+        `environments/${process.env.LOCAL_DEPLOY !== "true" ? "" : "local."}${process.env.ENV
         }.config.json`,
         "utf-8"
     )
