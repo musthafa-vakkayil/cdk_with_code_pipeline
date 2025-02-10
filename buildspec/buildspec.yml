@@ -19,11 +19,14 @@ phases:
       - cd ..
   post_build:
     commands:
+      - echo "Zipping Lambda function..."
+      - cd src/dist && zip -r ../../lambda.zip .
+      - cd ../..
       - echo "Synthesizing CDK template..."
       - cd cdk && npx cdk synth HBTechnicalSupportServcieStack -o dist
       - cd ..
 artifacts:
   files:
     - "cdk/dist/HBTechnicalSupportServcieStack.template.json"
-    - "src/dist/**/*"
+    - "lambda.zip"
   discard-paths: no
