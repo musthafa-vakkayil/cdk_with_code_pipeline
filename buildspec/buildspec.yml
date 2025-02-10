@@ -1,0 +1,29 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo "Installing dependencies for CDK..."
+      - cd cdk && npm ci
+      - cd ..
+      - echo "Installing dependencies for Lambda..."
+      - cd src && npm ci
+      - cd ..
+  build:
+    commands:
+      - echo "Building CDK stack..."
+      - cd cdk && npm run build
+      - cd ..
+      - echo "Building Lambda function..."
+      - cd src && npm run build
+      - cd ..
+  post_build:
+    commands:
+      - echo "Synthesizing CDK template..."
+      - cd cdk && npx cdk synth HBTechnicalSupportServcieStack -o dist
+      - cd ..
+artifacts:
+  files:
+    - "cdk/dist/HBTechnicalSupportServcieStack.template.json"
+    - "src/dist/**/*"
+  discard-paths: no
