@@ -20,7 +20,7 @@
             "Action": [
                 "codebuild:*"
             ],
-            "Resource": "arn:aws:codebuild:${AWS_REGION}:${AWS_ACCOUNT_ID}:project/*"
+            "Resource": "*"
         },
         {
             "Effect": "Allow",
@@ -34,7 +34,7 @@
             "Action": [
                 "cloudformation:*"
             ],
-            "Resource": "arn:aws:cloudformation:${AWS_REGION}:${AWS_ACCOUNT_ID}:stack/*"
+            "Resource": "*"
         },
         {
             "Effect": "Allow",
@@ -43,14 +43,14 @@
                 "kms:Decrypt",
                 "kms:GenerateDataKey"
             ],
-            "Resource": "arn:aws:kms:${AWS_REGION}:${AWS_ACCOUNT_ID}:key/*"
+            "Resource": "*"
         },
         {
             "Effect": "Allow",
             "Action": [
                 "secretsmanager:GetSecretValue"
             ],
-            "Resource": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret/*"
+            "Resource": "*"
         },
         {
             "Effect": "Allow",
@@ -64,14 +64,14 @@
             "Action": [
                 "lambda:*"
             ],
-            "Resource": "arn:aws:lambda:${AWS_REGION}:${AWS_ACCOUNT_ID}:function:*"
+            "Resource": "*"
         },
         {
             "Effect": "Allow",
             "Action": [
                 "dynamodb:*"
             ],
-            "Resource": "arn:aws:dynamodb:${AWS_REGION}:${AWS_ACCOUNT_ID}:table/*"
+            "Resource": "*"
         },
         {
             "Effect": "Allow",
@@ -85,14 +85,14 @@
                 "iam:GetRole",
                 "iam:ListAttachedRolePolicies"
             ],
-            "Resource": "arn:aws:iam::${AWS_ACCOUNT_ID}:role/*"
+            "Resource": "*"
         },
         {
             "Effect": "Allow",
             "Action": [
                 "apigateway:*"
             ],
-            "Resource": "arn:aws:apigateway:${AWS_REGION}::/restapis/*"
+            "Resource": "*"
         }
     ]
 }
