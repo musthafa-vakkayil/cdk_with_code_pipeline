@@ -97,7 +97,7 @@ export class CodePipelineStack extends cdk.Stack {
             ],
             parameterOverrides: {
                 bucketName: buildOutput.bucketName,
-                bucketKey: buildOutput.atPath(`src/dist/`),
+                bucketKey: buildOutput.objectKey,
             },
             runOrder: 3,
         });

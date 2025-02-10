@@ -23,7 +23,7 @@ export class HBTechnicalSupportServcieStack extends cdk.Stack {
 
     new lambda.Function(this, "mylambda", {
       functionName: 'first-cdk-lambda',
-      code: lambda.Code.fromBucket(bucket, bucketKey.valueAsString),
+      code: lambda.Code.fromBucket(bucket, `${bucketKey.valueAsString}/src/dist`),
       handler: 'index.handler',
       runtime: lambda.Runtime.NODEJS_20_X,
       memorySize: 128
