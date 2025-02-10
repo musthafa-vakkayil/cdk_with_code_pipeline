@@ -15,6 +15,7 @@ phases:
       - npx cdk synth HBTechnicalSupportServcieStack -o dist
 
 artifacts:
+  base-directory: cdk/dist
   files:
-    - 'cdk/dist/HBTechnicalSupportServcieStack.template.json'
+    - 'HBTechnicalSupportServcieStack.template.json'
   discard-paths: no

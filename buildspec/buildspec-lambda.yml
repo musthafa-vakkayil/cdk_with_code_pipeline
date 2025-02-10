@@ -12,6 +12,7 @@ phases:
       - npm run build
 
 artifacts:
+  base-directory: src/dist  # Ensures only contents inside src/dist are included
   files:
-    - 'src/dist/**'
+    - '**/*'  # Includes everything inside src/dist
   discard-paths: no
