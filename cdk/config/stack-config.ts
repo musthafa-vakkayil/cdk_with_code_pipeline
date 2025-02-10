@@ -10,13 +10,13 @@ const environmentConfig: IAwsCdkCodepipelineStackProps = {
     github: {
         tokenSecretName: 'cdk-token',
         owner: 'musthafa-vakkayil',
-        repo: 'my_first_cdk_stack',
-        branch: 'main',
+        repo: 'cdk_with_code_pipeline',
+        branch: 'development',
     },
     codebuild: {
         templateProject: 'BuildTemplate',
         lambdaProject: 'buildLambda',
-        targetStack: 'MyFirstCdkStackStack',
+        targetStack: 'HBTechnicalSupportServcieStack',
         targetLambda: 'index.js',
     },
     pipelineName: 'LambdaDeploymentPipeline',

@@ -89,7 +89,7 @@ export class CodePipelineStack extends cdk.Stack {
             adminPermissions: true,
             replaceOnFailure: true,
             stackName: props.codebuild.targetStack,
-            templatePath: buildOutput.atPath(`${props.codebuild.targetStack}.template.json`),
+            templatePath: buildOutput.atPath(`cdk/dist/${props.codebuild.targetStack}.template.json`),
             extraInputs: [buildOutput],
             cfnCapabilities: [
                 cdk.CfnCapabilities.NAMED_IAM,
