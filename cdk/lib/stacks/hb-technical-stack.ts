@@ -12,7 +12,7 @@ export class HBTechnicalSupportServcieStack extends cdk.Stack {
     super(scope, id, props);
 
     // artifacts bucket
-    new s3.Bucket(this, 'UnencryptedBucket', {
+    new s3.Bucket(this, 'ArtifactBucket', {
       bucketName: `${CONFIG.artifact.BUCKET_NAME}`,
       removalPolicy: cdk.RemovalPolicy.RETAIN, // Change this if you want to auto-delete the bucket on stack deletion
     });
