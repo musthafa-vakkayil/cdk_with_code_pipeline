@@ -16,6 +16,7 @@ export class CodePipelineStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props: IAwsCdkCodepipelineStackProps) {
         super(scope, id, props);
 
+        // create iam user
         const role = new iam.Role(this, 'role', {
             roleName: props.role.name,
             description: props.role.description,
@@ -26,44 +27,51 @@ export class CodePipelineStack extends cdk.Stack {
             ),
         });
 
-        role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName(props.role.managedPolicy));
+        role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName(props.role.managedPolicy))
 
-        /** KMS Key for S3 bucket encryption */
-        const key = new kms.Key(this, 'key', { description: props.keyDescription, removalPolicy: cdk.RemovalPolicy.DESTROY });
-        key.grantEncryptDecrypt(role);
+        /** KMS key used for s3 bucket in codepipeline */
+        const key = new kms.Key(this, 'key', { description: props.keyDescription, removalPolicy: cdk.RemovalPolicy.DESTROY })
+        key.grantEncryptDecrypt(role)
 
-        /* GitHub Token */
+        /* github token */
         const githubToken = secretsmanager.Secret.fromSecretNameV2(this, 'githubSecret', props.github.tokenSecretName);
         githubToken.grantRead(role);
 
-        /* S3 Bucket for CodePipeline */
+        /* Codepipeline Artifacts and S3 bucket used in Codepipeline */
         const artifactBucket = new s3.Bucket(this, 'bucket', {
             bucketName: props.bucketname,
             encryptionKey: key,
-            encryption: s3.BucketEncryption.KMS,
+            encryption: cdk.aws_s3.BucketEncryption.KMS,
             removalPolicy: cdk.RemovalPolicy.DESTROY,
             autoDeleteObjects: true,
         });
-        artifactBucket.grantReadWrite(role);
+        artifactBucket.grantReadWrite(role)
 
         const source = new codepipeline.Artifact();
-        const buildOutput = new codepipeline.Artifact('buildOutput');
+        const templateOutput = new codepipeline.Artifact('templateOutput');
+        const lambdaOutput = new codepipeline.Artifact('lambdaOutput');
 
-        /* Unified CodeBuild Project */
-        const buildProject = new codebuild.PipelineProject(this, 'BuildProject', {
-            projectName: `${props.pipelineName}-Build`,
+
+        // CodeBuild Projects
+        const templateBuildProject = new codebuild.PipelineProject(this, 'TemplateBuild', {
+            projectName: props.codebuild.templateProject,
             role,
             encryptionKey: key,
             environment: { buildImage: codebuild.LinuxBuildImage.STANDARD_6_0 },
-            buildSpec: codebuild.BuildSpec.fromSourceFilename('buildspec/buildspec.yml'),
-            environmentVariables: {
-                TARGET_STACK: { value: props.codebuild.targetStack },
-            },
+            buildSpec: codebuild.BuildSpec.fromSourceFilename('buildspec/buildspec-template.yml'),
         });
 
-        /* CodePipeline Actions */
+        const lambdaBuildProject = new codebuild.PipelineProject(this, 'LambdaBuild', {
+            projectName: props.codebuild.lambdaProject,
+            role,
+            encryptionKey: key,
+            environment: { buildImage: codebuild.LinuxBuildImage.STANDARD_6_0 },
+            buildSpec: codebuild.BuildSpec.fromSourceFilename('buildspec/buildspec-lambda.yml'),
+        });
+
+        // CodePipeline Actions
         const githubSourceAction = new codepipeline_actions.GitHubSourceAction({
-            actionName: "Checkout_Source",
+            actionName: 'CheckoutSourceCode',
             output: source,
             owner: props.github.owner,
             repo: props.github.repo,
@@ -73,31 +81,40 @@ export class CodePipelineStack extends cdk.Stack {
             runOrder: 1,
         });
 
-        const buildAction = new codepipeline_actions.CodeBuildAction({
-            actionName: 'Build_CDK_Lambda',
+        const templateBuildAction = new codepipeline_actions.CodeBuildAction({
+            actionName: 'BuildTemplate',
             role,
             input: source,
-            project: buildProject,
-            outputs: [buildOutput],
+            project: templateBuildProject,
+            outputs: [templateOutput],
+            runOrder: 2,
+        });
+
+        const lambdaBuildAction = new codepipeline_actions.CodeBuildAction({
+            actionName: 'BuildLambda',
+            role,
+            input: source,
+            project: lambdaBuildProject,
+            outputs: [lambdaOutput],
             runOrder: 2,
         });
 
         const deployAction = new codepipeline_actions.CloudFormationCreateUpdateStackAction({
-            actionName: 'Deploy_CDK',
+            actionName: 'Deploying_Stack',
             role,
             deploymentRole: role,
             adminPermissions: true,
             replaceOnFailure: true,
             stackName: props.codebuild.targetStack,
-            templatePath: buildOutput.atPath(`cdk/dist/${props.codebuild.targetStack}.template.json`),
-            extraInputs: [buildOutput],
+            templatePath: templateOutput.atPath(`${props.codebuild.targetStack}.template.json`),
+            extraInputs: [lambdaOutput],
             cfnCapabilities: [
                 cdk.CfnCapabilities.NAMED_IAM,
                 cdk.CfnCapabilities.AUTO_EXPAND,
             ],
             parameterOverrides: {
-                bucketName: buildOutput.bucketName,
-                bucketKey: buildOutput.objectKey,
+                bucketName: lambdaOutput.bucketName,
+                bucketKey: lambdaOutput.objectKey,
             },
             runOrder: 3,
         });
@@ -107,9 +124,18 @@ export class CodePipelineStack extends cdk.Stack {
             role,
             artifactBucket,
             stages: [
-                { stageName: 'Source', actions: [githubSourceAction] },
-                { stageName: 'Build', actions: [buildAction] },
-                { stageName: 'Deploy', actions: [deployAction] }
+                {
+                    stageName: 'Source',
+                    actions: [githubSourceAction],
+                },
+                {
+                    stageName: 'Build',
+                    actions: [templateBuildAction, lambdaBuildAction]
+                },
+                {
+                    stageName: 'Deploy',
+                    actions: [deployAction]
+                }
             ],
         });
 
@@ -124,7 +150,27 @@ export class CodePipelineStack extends cdk.Stack {
         });
         topic.grantPublish(role);
         props.topic.subEmails.forEach(email => {
-            topic.addSubscription(new sns_sub.EmailSubscription(email));
+            const subscription = new sns_sub.EmailSubscription(email);
+            topic.addSubscription(subscription)
         });
+
+        // [
+        //     { source: templateBuildAction, name: 'template' },
+        //     { source: lambdaBuildAction, name: 'lambda' },
+        // ].forEach(build => {
+        //     return new notifications.NotificationRule(
+        //         this,
+        //         `${build.name}-notifications`,
+        //         {
+        //             notificationRuleName: `${build.name}-notifications`,
+        //             source: build.source,
+        //             events: [
+        //                 'codebuild-project-build-state-succeeded',
+        //                 'codebuild-project-build-state-failed'
+        //             ],
+        //             targets: [topic],
+        //         },
+        //     );
+        // });
     }
 }

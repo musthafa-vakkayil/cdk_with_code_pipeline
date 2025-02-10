@@ -1,0 +1,20 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: latest
+    commands:
+      - cd cdk
+      - npm ci
+  build:
+    commands:
+      - npm run build
+  post_build:
+    commands:
+      - npx cdk synth HBTechnicalSupportServcieStack -o dist
+
+artifacts:
+  files:
+    - 'cdk/dist/HBTechnicalSupportServcieStack.template.json'
+  discard-paths: no
