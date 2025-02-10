@@ -85,7 +85,9 @@
                 "iam:GetRole",
                 "iam:ListAttachedRolePolicies",
                 "iam:CreatePolicy",
-                "iam:PassRole"
+                "iam:PassRole",
+                "iam:GetPolicy",
+                "iam:DeletePolicy"
             ],
             "Resource": "*"
         },
